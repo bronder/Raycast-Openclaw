@@ -195,6 +195,15 @@ export default function ChatWithOpenClaw() {
               shortcut={{ modifiers: ["cmd"], key: "c" }}
             />
           )}
+          {conversation.some((e) => e.role === "assistant") && (
+            <Action.CopyToClipboard
+              title="Copy Last Response"
+              content={conversation
+                .filter((e) => e.role === "assistant")
+                .pop()?.content || ""}
+              shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
+            />
+          )}
         </ActionPanel>
       }
     />
