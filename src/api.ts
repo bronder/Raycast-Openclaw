@@ -57,8 +57,9 @@ function getConfig(): Preferences {
   return getPreferenceValues<Preferences>();
 }
 
-function buildHeaders(): Record<string, string> {
-  const { authToken, agentId } = getConfig();
+function buildHeaders(config?: Preferences): Record<string, string> {
+  const prefs = config || getConfig();
+  const { authToken, agentId } = prefs;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
@@ -71,14 +72,16 @@ function buildHeaders(): Record<string, string> {
   return headers;
 }
 
-function buildUrl(path: string): string {
-  const { gatewayUrl } = getConfig();
+function buildUrl(path: string, config?: Preferences): string {
+  const prefs = config || getConfig();
+  const { gatewayUrl } = prefs;
   const base = gatewayUrl.replace(/\/+$/, "");
   return `${base}${path}`;
 }
 
-function getModelId(): string {
-  const { model, agentId } = getConfig();
+function getModelId(config?: Preferences): string {
+  const prefs = config || getConfig();
+  const { model, agentId } = prefs;
   if (model) return model;
   return agentId ? `openclaw:${agentId}` : "openclaw";
 }
@@ -87,24 +90,24 @@ function getModelId(): string {
  * Send a non-streaming chat completion request to the OpenClaw Gateway.
  */
 export async function chatCompletion(messages: ChatMessage[]): Promise<string> {
-  const url = buildUrl("/v1/chat/completions");
+  const config = getConfig();
+  const url = buildUrl("/v1/chat/completions", config);
   const body = JSON.stringify({
-    model: getModelId(),
+    model: getModelId(config),
     messages,
     stream: false,
   });
 
   const response = await fetch(url, {
     method: "POST",
-    headers: buildHeaders(),
+    headers: buildHeaders(config),
     body,
   });
 
   if (!response.ok) {
     const text = await response.text();
     if (response.status === 405) {
-      const { authToken } = getConfig();
-      if (!authToken) {
+      if (!config.authToken) {
         throw new Error(
           "OpenClaw Gateway returned 405 (Method Not Allowed). This usually means authentication is required. Please set your Auth Token in the extension preferences.",
         );
@@ -134,16 +137,17 @@ export async function chatCompletionStream(
   onDone: () => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  const url = buildUrl("/v1/chat/completions");
+  const config = getConfig();
+  const url = buildUrl("/v1/chat/completions", config);
   const body = JSON.stringify({
-    model: getModelId(),
+    model: getModelId(config),
     messages,
     stream: true,
   });
 
   const response = await fetch(url, {
     method: "POST",
-    headers: buildHeaders(),
+    headers: buildHeaders(config),
     body,
     signal,
   });
@@ -151,8 +155,7 @@ export async function chatCompletionStream(
   if (!response.ok) {
     const text = await response.text();
     if (response.status === 405) {
-      const { authToken } = getConfig();
-      if (!authToken) {
+      if (!config.authToken) {
         throw new Error(
           "OpenClaw Gateway returned 405 (Method Not Allowed). This usually means authentication is required. Please set your Auth Token in the extension preferences.",
         );
@@ -217,13 +220,14 @@ export async function chatCompletionStream(
  */
 export async function checkGatewayHealth(): Promise<boolean> {
   try {
-    const url = buildUrl("/v1/chat/completions");
+    const config = getConfig();
+    const url = buildUrl("/v1/chat/completions", config);
     // Just check if the endpoint is reachable with a minimal request
     const response = await fetch(url, {
       method: "POST",
-      headers: buildHeaders(),
+      headers: buildHeaders(config),
       body: JSON.stringify({
-        model: getModelId(),
+        model: getModelId(config),
         messages: [{ role: "user", content: "ping" }],
         max_tokens: 1,
       }),

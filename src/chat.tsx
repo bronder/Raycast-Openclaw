@@ -33,7 +33,7 @@ function formatConversation(
     }
   }
 
-  if (streamingText !== undefined) {
+  if (streamingText) {
     parts.push(`### 🦞 OpenClaw\n\n${streamingText || "⏳ Thinking..."}`);
   }
 
@@ -74,9 +74,7 @@ function MessageInput({ onSend }: { onSend: (text: string) => void }) {
 export default function ChatWithOpenClaw() {
   const [conversation, setConversation] = useState<ConversationEntry[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [streamingText, setStreamingText] = useState<string | undefined>(
-    undefined,
-  );
+  const [streamingText, setStreamingText] = useState<string>("");
   const abortRef = useRef<AbortController | null>(null);
   const { push } = useNavigation();
 
@@ -105,7 +103,7 @@ export default function ChatWithOpenClaw() {
       },
       () => {
         setIsStreaming(false);
-        setStreamingText(undefined);
+        setStreamingText("");
         setConversation([
           ...updatedConversation,
           { role: "assistant", content: fullText },
@@ -115,7 +113,7 @@ export default function ChatWithOpenClaw() {
     ).catch(async (error) => {
       if ((error as Error).name === "AbortError") return;
       setIsStreaming(false);
-      setStreamingText(undefined);
+      setStreamingText("");
       if (fullText) {
         setConversation([
           ...updatedConversation,
@@ -165,7 +163,7 @@ export default function ChatWithOpenClaw() {
                     { role: "assistant", content: streamingText },
                   ]);
                 }
-                setStreamingText(undefined);
+                setStreamingText("");
               }}
             />
           )}
@@ -178,7 +176,7 @@ export default function ChatWithOpenClaw() {
               abortRef.current?.abort();
               setConversation([]);
               setIsStreaming(false);
-              setStreamingText(undefined);
+              setStreamingText("");
               showToast({
                 style: Toast.Style.Success,
                 title: "Conversation cleared",
